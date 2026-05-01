@@ -173,7 +173,7 @@ export default function Whiteboard({ lanes, currentDate }: Props) {
             return candidate
           }
 
-          editor.store.listen(() => {
+          const cleanupStoreListener = editor.store.listen(() => {
             if (isBridgeActive || candidate || !editor.isIn('select.translating')) return
             readCandidateFromSelection()
           })
@@ -238,28 +238,7 @@ export default function Whiteboard({ lanes, currentDate }: Props) {
               return
             }
 
-            const shapeId = candidate?.shapeId
             candidate = null
-            if (!shapeId) return
-
-            const target = getDropTarget(e.clientX, e.clientY)
-            if (!target) return
-
-            setTimeout(() => {
-              const shape = editor.getShape(shapeId)
-              if (!shape || shape.type !== 'text') return
-
-              const text = getPlainText(editor, shape)
-              if (!text) return
-
-              if (target.zoneId === 'parking-lot') {
-                setPendingDrop({ x: e.clientX, y: e.clientY, text, shapeId, editor })
-              } else if (target.zoneId.startsWith('lane-')) {
-                const laneId = target.zoneId.slice(5)
-                createScheduledTodo(text, laneId, target.rect, e.clientX)
-                editor.deleteShapes([shapeId])
-              }
-            }, 0)
           }
 
           const onPointerCancel = () => {
@@ -275,6 +254,7 @@ export default function Whiteboard({ lanes, currentDate }: Props) {
           window.addEventListener('pointerup', onPointerUp, { capture: true })
           window.addEventListener('pointercancel', onPointerCancel, { capture: true })
           cleanupRef.current = () => {
+            cleanupStoreListener()
             window.removeEventListener('pointermove', onPointerMove, { capture: true })
             window.removeEventListener('pointerup', onPointerUp, { capture: true })
             window.removeEventListener('pointercancel', onPointerCancel, { capture: true })
