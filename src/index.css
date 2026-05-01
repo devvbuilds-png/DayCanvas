@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #121212;
+  color: #e3e3e3;
+  font-family: system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  color-scheme: dark;
+}
+
+#root {
+  height: 100svh;
+  overflow: hidden;
+}
