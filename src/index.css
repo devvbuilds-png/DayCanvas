@@ -17,3 +17,35 @@ body {
   height: 100svh;
   overflow: hidden;
 }
+
+.whiteboard-surface {
+  background: #121212;
+}
+
+.whiteboard-surface .tl-container,
+.whiteboard-surface .tl-background,
+.whiteboard-surface .tl-background__wrapper,
+.whiteboard-surface .tl-canvas {
+  background: #121212 !important;
+}
+
+.whiteboard-surface .tlui-layout {
+  --tlui-background: #1e1e1e;
+  --tlui-foreground: #e3e3e3;
+  --tlui-border: #2a2a2a;
+}
+
+.whiteboard-surface .tlui-toolbar,
+.whiteboard-surface .tlui-style-panel,
+.whiteboard-surface .tlui-help-menu,
+.whiteboard-surface .tlui-menu-zone {
+  background: transparent !important;
+}
+
+.whiteboard-surface .tlui-toolbar__tools,
+.whiteboard-surface .tlui-toolbar__tools__group,
+.whiteboard-surface .tlui-popover,
+.whiteboard-surface .tlui-menu {
+  background: #1e1e1e !important;
+  border-color: #2a2a2a !important;
+}

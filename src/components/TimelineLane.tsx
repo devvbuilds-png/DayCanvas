@@ -9,6 +9,7 @@ interface TimelineLaneProps {
   currentDate: string
   onOpen: (id: string) => void
   stamped: boolean
+  gestureArmed: boolean
 }
 
 function hexToRgba(hex: string, alpha: number): string {
@@ -24,7 +25,7 @@ const GRID_LINES = Array.from({ length: 35 }, (_, i) => {
   return { pct: (interval / 36) * 100, isHour: interval % 2 === 0 }
 })
 
-export default function TimelineLane({ lane, currentDate, onOpen, stamped }: TimelineLaneProps) {
+export default function TimelineLane({ lane, currentDate, onOpen, stamped, gestureArmed }: TimelineLaneProps) {
   const { setNodeRef, isOver } = useDroppable({ id: `track-${lane.id}` })
 
   const scheduledTodos = useLiveQuery(
@@ -83,6 +84,7 @@ export default function TimelineLane({ lane, currentDate, onOpen, stamped }: Tim
             currentDate={currentDate}
             onOpen={onOpen}
             stamped={stamped}
+            gestureArmed={gestureArmed}
           />
         ))}
       </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -12,7 +12,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from './db/db'
 import { seedIfEmpty } from './db/seed'
 import { minutesFrom6am } from './lib/time'
-import type { Todo } from './db/schema'
+import type { Todo, TodoStatus } from './db/schema'
 import Header from './components/Header'
 import ParkingLot from './components/ParkingLot'
 import Timeline from './components/Timeline'
@@ -20,9 +20,16 @@ import Footer from './components/Footer'
 import DetailPanel from './components/DetailPanel'
 import StampSheet from './components/StampSheet'
 import Whiteboard from './components/Whiteboard'
+import TodoGestureOverlay from './components/TodoGestureOverlay'
 
 function todayISO(): string {
   return new Date().toISOString().slice(0, 10)
+}
+
+interface GestureUndoState {
+  todoId: string
+  previousStatus: TodoStatus
+  previousPriority: number | null
 }
 
 export default function App() {
@@ -31,9 +38,30 @@ export default function App() {
   const [selectedTodoId, setSelectedTodoId] = useState<string | null>(null)
   const [showStampSheet, setShowStampSheet] = useState(false)
   const [stampTodos,     setStampTodos]     = useState<Todo[]>([])
-  const [splitPx,        setSplitPx]        = useState<number | null>(null)
+  const [isShiftPressed, setShiftPressed]   = useState(false)
+  const [gestureLatched, setGestureLatched] = useState(false)
+  const [lastGestureUndo, setLastGestureUndo] = useState<GestureUndoState | null>(null)
+  const todoContentRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => { seedIfEmpty() }, [])
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Shift') setShiftPressed(true)
+    }
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'Shift') setShiftPressed(false)
+    }
+    const onBlur = () => setShiftPressed(false)
+
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('keyup', onKeyUp)
+    window.addEventListener('blur', onBlur)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('keyup', onKeyUp)
+      window.removeEventListener('blur', onBlur)
+    }
+  }, [])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } })
@@ -50,6 +78,7 @@ export default function App() {
   const activeLane = activeTodo ? laneById[activeTodo.lane_id] : undefined
 
   const stamped = day?.stamped ?? false
+  const gestureArmed = !stamped && (isShiftPressed || gestureLatched)
 
   async function handleStamp() {
     if (!day || stamped) return
@@ -118,28 +147,24 @@ export default function App() {
     })
   }
 
-  function startResize(e: React.PointerEvent<HTMLDivElement>) {
-    e.preventDefault()
-    e.currentTarget.setPointerCapture(e.pointerId)
-    const containerRect = (e.currentTarget as HTMLElement).parentElement!.getBoundingClientRect()
-    const DIVIDER_HALF  = 2.5
+  function handleGestureFinish() {
+    if (gestureLatched) setGestureLatched(false)
+  }
 
-    function onMove(ev: PointerEvent) {
-      const newH = ev.clientY - containerRect.top - DIVIDER_HALF
-      const minH = 80
-      const maxH = containerRect.height - 80
-      setSplitPx(Math.max(minH, Math.min(maxH, newH)))
-    }
+  function handleGestureApplied(payload: GestureUndoState) {
+    setLastGestureUndo(payload)
+  }
 
-    function onUp() {
-      document.removeEventListener('pointermove', onMove)
-      document.removeEventListener('pointerup',   onUp)
-      document.removeEventListener('pointercancel', onUp)
-    }
+  async function handleUndoGesture() {
+    if (!lastGestureUndo) return
 
-    document.addEventListener('pointermove', onMove)
-    document.addEventListener('pointerup',   onUp)
-    document.addEventListener('pointercancel', onUp)
+    await db.todos.update(lastGestureUndo.todoId, {
+      status: lastGestureUndo.previousStatus,
+      priority: lastGestureUndo.previousPriority,
+      updated_at: new Date().toISOString(),
+    })
+
+    setLastGestureUndo(null)
   }
 
   return (
@@ -147,14 +172,22 @@ export default function App() {
       <div className="h-screen flex flex-col overflow-hidden" style={{ background: '#121212' }}>
 
         {/* todo section */}
-        <div
-          className="flex flex-col shrink-0"
-          style={splitPx !== null ? { height: splitPx, overflowY: 'auto' } : {}}
-        >
-          <div className="px-6 flex flex-col">
+        <div className="flex flex-col shrink-0 relative">
+          <div
+            ref={todoContentRef}
+            className="px-6 flex flex-col"
+          >
             <Header currentDate={currentDate} day={day} onNavigate={navigate} />
             <div className="mt-2">
-              <ParkingLot lanes={lanes} stamped={stamped} />
+              <ParkingLot
+                lanes={lanes}
+                stamped={stamped}
+                gestureArmed={gestureArmed}
+                gestureLatched={gestureLatched}
+                canUndoGesture={lastGestureUndo !== null}
+                onUndoGesture={handleUndoGesture}
+                onToggleGestureMode={() => setGestureLatched(value => !value)}
+              />
             </div>
             <div className="mt-2">
               <Timeline
@@ -162,19 +195,17 @@ export default function App() {
                 currentDate={currentDate}
                 onOpen={setSelectedTodoId}
                 stamped={stamped}
+                gestureArmed={gestureArmed}
               />
             </div>
             <Footer stamped={stamped} onStamp={handleStamp} />
           </div>
-        </div>
-
-        {/* divider */}
-        <div
-          className="shrink-0 cursor-ns-resize select-none flex items-center justify-center"
-          style={{ height: 5, background: '#1a1a1a', borderTop: '1px solid #2a2a2a', borderBottom: '1px solid #2a2a2a' }}
-          onPointerDown={startResize}
-        >
-          <div style={{ width: 32, height: 2, borderRadius: 2, background: '#3a3a3a' }} />
+          {gestureArmed && (
+            <TodoGestureOverlay
+              onGestureFinish={handleGestureFinish}
+              onGestureApplied={handleGestureApplied}
+            />
+          )}
         </div>
 
         {/* whiteboard */}

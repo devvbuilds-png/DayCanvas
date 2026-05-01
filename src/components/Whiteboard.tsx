@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
-import { Tldraw, type Editor, type TLShape, type TLShapeId } from 'tldraw'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Tldraw, type Editor, type TLComponents, type TLShape, type TLShapeId } from 'tldraw'
 import 'tldraw/tldraw.css'
 import { db } from '../db/db'
 import type { Lane } from '../db/schema'
@@ -102,6 +102,20 @@ export default function Whiteboard({ lanes, currentDate }: Props) {
   const currentDateRef = useRef(currentDate)
   const bridgeDragRef = useRef<DragCandidate | null>(null)
   const cleanupRef = useRef<(() => void) | null>(null)
+  const components = useMemo<TLComponents>(() => ({
+    PageMenu: null,
+    NavigationPanel: null,
+    ZoomMenu: null,
+    MainMenu: null,
+    HelpMenu: null,
+    QuickActions: null,
+    HelperButtons: null,
+    DebugMenu: null,
+    DebugPanel: null,
+    MenuPanel: null,
+    TopPanel: null,
+    SharePanel: null,
+  }), [])
 
   useEffect(() => { currentDateRef.current = currentDate }, [currentDate])
   useEffect(() => () => { cleanupRef.current?.() }, [])
@@ -147,8 +161,9 @@ export default function Whiteboard({ lanes, currentDate }: Props) {
   }
 
   return (
-    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+    <div className="whiteboard-surface" style={{ width: '100%', height: '100%', position: 'relative' }}>
       <Tldraw
+        components={components}
         persistenceKey="day-canvas-whiteboard"
         onMount={(editor: Editor) => {
           editor.user.updateUserPreferences({ colorScheme: 'dark' })

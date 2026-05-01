@@ -7,6 +7,7 @@ interface TimelineProps {
   currentDate: string
   onOpen: (id: string) => void
   stamped: boolean
+  gestureArmed: boolean
 }
 
 // 6a to 12a (midnight) = 19 markers
@@ -33,7 +34,7 @@ function getNowState(): NowState | null {
   return { pct: (mins / 1080) * 100, label }
 }
 
-export default function Timeline({ lanes, currentDate, onOpen, stamped }: TimelineProps) {
+export default function Timeline({ lanes, currentDate, onOpen, stamped, gestureArmed }: TimelineProps) {
   const [now, setNow] = useState<NowState | null>(getNowState)
 
   useEffect(() => {
@@ -77,7 +78,14 @@ export default function Timeline({ lanes, currentDate, onOpen, stamped }: Timeli
         )}
 
         {lanes.map(lane => (
-          <TimelineLane key={lane.id} lane={lane} currentDate={currentDate} onOpen={onOpen} stamped={stamped} />
+          <TimelineLane
+            key={lane.id}
+            lane={lane}
+            currentDate={currentDate}
+            onOpen={onOpen}
+            stamped={stamped}
+            gestureArmed={gestureArmed}
+          />
         ))}
       </div>
     </div>
