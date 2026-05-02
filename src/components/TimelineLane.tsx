@@ -46,31 +46,34 @@ export default function TimelineLane({ lane, currentDate, onOpen, stamped, gestu
     <div className="flex items-stretch">
       {/* label gutter */}
       <div className="w-20 shrink-0 flex items-center pr-3">
-        <span className="text-xs font-medium leading-none" style={{ color: lane.color }}>
-          {lane.name.toLowerCase()}
+        <span
+          className="text-[11px] font-medium leading-none tracking-wide"
+          style={{ color: hexToRgba(lane.color, 0.75) }}
+        >
+          {lane.name}
         </span>
       </div>
 
-      {/* track — overflow visible so readout tooltips escape upward */}
+      {/* track */}
       <div
         ref={setNodeRef}
         data-dropzone={`lane-${lane.id}`}
-        className="flex-1 h-9 rounded relative transition-colors"
+        className="flex-1 h-10 rounded-md relative transition-colors"
         style={{
-          background: hexToRgba(lane.color, isOver ? 0.20 : 0.12),
-          outline: isOver ? `1px dashed ${lane.color}66` : undefined,
+          background: hexToRgba(lane.color, isOver ? 0.22 : 0.10),
+          outline: isOver ? `1px dashed ${hexToRgba(lane.color, 0.5)}` : undefined,
         }}
       >
-        {/* gridlines behind pills */}
-        <div className="absolute inset-0 pointer-events-none rounded overflow-hidden">
+        {/* gridlines */}
+        <div className="absolute inset-0 pointer-events-none rounded-md overflow-hidden">
           {GRID_LINES.map(({ pct, isHour }) => (
             <div
               key={pct}
               className="absolute top-0 bottom-0"
               style={{
-                left:       `${pct}%`,
-                width:      '0.5px',
-                background: isHour ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.04)',
+                left: `${pct}%`,
+                width: '0.5px',
+                background: isHour ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.025)',
               }}
             />
           ))}

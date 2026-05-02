@@ -21,6 +21,13 @@ interface ResizeGesture {
   trackWidth: number
 }
 
+function hexToRgba(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
+}
+
 export default function TimelinePill({
   todo,
   lane,
@@ -123,11 +130,17 @@ export default function TimelinePill({
 
   const isAlt = todo.status === 'done' || todo.status === 'missed' || todo.status === 'carried'
 
+  const pillBg = isAlt
+    ? hexToRgba(lane.color, 0.08)
+    : hexToRgba(lane.color, 0.18)
+  const pillBorder = hexToRgba(lane.color, isAlt ? 0.18 : 0.38)
+
   return (
     <div
       ref={el => { containerRef.current = el; dndRef(el) }}
       {...(stamped || gestureArmed ? {} : listeners)}
       {...(stamped || gestureArmed ? {} : attributes)}
+      title={todo.text}
       data-gesture-target="todo"
       data-todo-id={todo.id}
       data-todo-kind="timeline"
@@ -135,19 +148,19 @@ export default function TimelinePill({
       onClick={handleClick}
       onMouseEnter={() => setHovering(true)}
       onMouseLeave={() => setHovering(false)}
-      className={`group absolute top-0.5 bottom-0.5 flex items-center pl-2 pr-1 rounded border-l-[3px] ${stamped ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'}`}
+      className={`group absolute top-0.5 bottom-0.5 flex items-center pl-2 pr-1 rounded-md ${stamped ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'}`}
       style={{
         left: `${(displayStart / 1080) * 100}%`,
         width: `${(displayDuration / 1080) * 100}%`,
-        borderLeftColor: lane.color,
-        background: '#1e1e1e',
-        opacity: isDragging ? 0.45 : isAlt ? 0.5 : 1,
+        background: pillBg,
+        border: `1px solid ${pillBorder}`,
+        opacity: isDragging ? 0.4 : isAlt ? 0.55 : 1,
       }}
     >
       {showReadout && (
         <div
-          className="absolute bottom-full left-0 mb-1 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap z-50 pointer-events-none"
-          style={{ border: '1px solid #2a2a2a', background: '#1e1e1e', color: '#888' }}
+          className="absolute bottom-full left-0 mb-1.5 px-2 py-1 rounded-md text-[10px] whitespace-nowrap z-50 pointer-events-none tnum"
+          style={{ border: '1px solid #252525', background: '#181818', color: '#666' }}
         >
           {formatRange(displayStart, displayDuration)}
         </div>
@@ -157,19 +170,23 @@ export default function TimelinePill({
         <div
           {...handleEvents}
           onPointerDown={e => onHandleDown(e, 'left')}
-          className={`absolute left-0 top-0 bottom-0 w-1.5 cursor-ew-resize z-10 transition-opacity rounded-l ${handleVis}`}
-          style={{ background: `${lane.color}55` }}
+          className={`absolute left-0 top-0 bottom-0 w-1.5 cursor-ew-resize z-10 transition-opacity rounded-l-md ${handleVis}`}
+          style={{ background: hexToRgba(lane.color, 0.45) }}
         />
       )}
 
       <span className={`text-[11px] leading-none select-none flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap ${
-        todo.status === 'done' ? 'line-through text-[#888]' :
-        todo.status === 'missed' ? 'text-[#888]' :
-        todo.status === 'carried' ? 'text-[#888]' :
-        'text-[#e3e3e3]'
-      }`}>
-        {todo.status === 'missed' && <span className="mr-1 text-[#D85A30]">x</span>}
-        {todo.status === 'carried' && <span className="mr-1 text-[#888]">&lt;-</span>}
+        todo.status === 'done' ? 'line-through' :
+        todo.status === 'missed' || todo.status === 'carried' ? '' :
+        ''
+      }`} style={{
+        color: todo.status === 'done' ? '#555' :
+               todo.status === 'missed' ? '#666' :
+               todo.status === 'carried' ? '#555' :
+               '#d8d8d8',
+      }}>
+        {todo.status === 'missed' && <span className="mr-1" style={{ color: '#c0533f' }}>×</span>}
+        {todo.status === 'carried' && <span className="mr-1" style={{ color: '#444' }}>↩</span>}
         {todo.text}
       </span>
 
@@ -177,8 +194,8 @@ export default function TimelinePill({
         <div
           {...handleEvents}
           onPointerDown={e => onHandleDown(e, 'right')}
-          className={`absolute right-0 top-0 bottom-0 w-1.5 cursor-ew-resize z-10 transition-opacity rounded-r ${handleVis}`}
-          style={{ background: `${lane.color}55` }}
+          className={`absolute right-0 top-0 bottom-0 w-1.5 cursor-ew-resize z-10 transition-opacity rounded-r-md ${handleVis}`}
+          style={{ background: hexToRgba(lane.color, 0.45) }}
         />
       )}
     </div>

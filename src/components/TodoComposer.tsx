@@ -75,7 +75,7 @@ export default function TodoComposer({ lanes, onSave, onCancel }: TodoComposerPr
                   className="w-1.5 h-1.5 rounded-full shrink-0"
                   style={{ backgroundColor: lane.color }}
                 />
-                {lane.name.toLowerCase()}
+                {lane.name}
               </button>
             )
           })}

@@ -1,5 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Tldraw, type Editor, type TLComponents, type TLShape, type TLShapeId } from 'tldraw'
+import {
+  DefaultToolbar,
+  DefaultToolbarContent,
+  Tldraw,
+  type Editor,
+  type TLComponents,
+  type TLShape,
+  type TLShapeId,
+} from 'tldraw'
 import 'tldraw/tldraw.css'
 import { db } from '../db/db'
 import type { Lane } from '../db/schema'
@@ -28,6 +36,14 @@ interface DragCandidate {
   text: string
   originalShape: TLShape
   editor: Editor
+}
+
+function VerticalToolbar() {
+  return (
+    <DefaultToolbar orientation="vertical">
+      <DefaultToolbarContent />
+    </DefaultToolbar>
+  )
 }
 
 function getPlainText(editor: Editor, shape: TLShape): string {
@@ -88,7 +104,7 @@ function LanePicker({ lanes, x, y, onPick, onCancel }: {
             onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
           >
             <div style={{ width: 8, height: 8, borderRadius: '50%', background: lane.color, flexShrink: 0 }} />
-            {lane.name.toLowerCase()}
+            {lane.name}
           </button>
         ))}
       </div>
@@ -102,7 +118,11 @@ export default function Whiteboard({ lanes, currentDate }: Props) {
   const currentDateRef = useRef(currentDate)
   const bridgeDragRef = useRef<DragCandidate | null>(null)
   const cleanupRef = useRef<(() => void) | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const editorRef = useRef<Editor | null>(null)
+  const preservedScrollRef = useRef<number | null>(null)
   const components = useMemo<TLComponents>(() => ({
+    Toolbar: VerticalToolbar,
     PageMenu: null,
     NavigationPanel: null,
     ZoomMenu: null,
@@ -119,6 +139,62 @@ export default function Whiteboard({ lanes, currentDate }: Props) {
 
   useEffect(() => { currentDateRef.current = currentDate }, [currentDate])
   useEffect(() => () => { cleanupRef.current?.() }, [])
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    const preservePageScroll = () => {
+      const scrollY = preservedScrollRef.current
+      if (scrollY === null) return
+      window.scrollTo({ top: scrollY })
+    }
+
+    const onPointerDownCapture = (event: PointerEvent) => {
+      const scrollY = window.scrollY
+      preservedScrollRef.current = scrollY
+      const target = event.target
+      if (target instanceof HTMLElement) {
+        if (target.closest('input, textarea, select, button, [contenteditable="true"]')) return
+      }
+      editorRef.current?.focus()
+      // Prevent the focus call from scrolling the page to the whiteboard
+      window.requestAnimationFrame(() => {
+        window.scrollTo({ top: scrollY })
+        window.requestAnimationFrame(() => window.scrollTo({ top: scrollY }))
+      })
+    }
+
+    const onDoubleClickCapture = () => {
+      preservedScrollRef.current = window.scrollY
+      window.requestAnimationFrame(() => {
+        preservePageScroll()
+        window.requestAnimationFrame(preservePageScroll)
+      })
+    }
+
+    const onFocusIn = (event: FocusEvent) => {
+      const target = event.target
+      if (!(target instanceof HTMLElement)) return
+      if (!target.isContentEditable) return
+      preservePageScroll()
+    }
+
+    const onWheel = (event: WheelEvent) => {
+      if (event.ctrlKey || event.metaKey) return
+      event.stopPropagation()
+    }
+
+    container.addEventListener('pointerdown', onPointerDownCapture, { capture: true })
+    container.addEventListener('dblclick', onDoubleClickCapture, { capture: true })
+    container.addEventListener('focusin', onFocusIn, { capture: true })
+    container.addEventListener('wheel', onWheel, { capture: true })
+    return () => {
+      container.removeEventListener('pointerdown', onPointerDownCapture, { capture: true })
+      container.removeEventListener('dblclick', onDoubleClickCapture, { capture: true })
+      container.removeEventListener('focusin', onFocusIn, { capture: true })
+      container.removeEventListener('wheel', onWheel, { capture: true })
+    }
+  }, [])
 
   function getDropTarget(screenX: number, screenY: number) {
     const zones = document.querySelectorAll<HTMLElement>('[data-dropzone]')
@@ -161,11 +237,17 @@ export default function Whiteboard({ lanes, currentDate }: Props) {
   }
 
   return (
-    <div className="whiteboard-surface" style={{ width: '100%', height: '100%', position: 'relative' }}>
+    <div
+      ref={containerRef}
+      className="whiteboard-surface"
+      style={{ width: '100%', height: '100%', position: 'relative' }}
+    >
       <Tldraw
+        autoFocus={false}
         components={components}
         persistenceKey="day-canvas-whiteboard"
         onMount={(editor: Editor) => {
+          editorRef.current = editor
           editor.user.updateUserPreferences({ colorScheme: 'dark' })
 
           let candidate: DragCandidate | null = null
@@ -269,6 +351,7 @@ export default function Whiteboard({ lanes, currentDate }: Props) {
           window.addEventListener('pointerup', onPointerUp, { capture: true })
           window.addEventListener('pointercancel', onPointerCancel, { capture: true })
           cleanupRef.current = () => {
+            editorRef.current = null
             cleanupStoreListener()
             window.removeEventListener('pointermove', onPointerMove, { capture: true })
             window.removeEventListener('pointerup', onPointerUp, { capture: true })

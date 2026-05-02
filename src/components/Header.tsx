@@ -2,16 +2,17 @@ import { db } from '../db/db'
 import type { Day, Mood } from '../db/schema'
 
 interface HeaderProps {
-  currentDate: string   // YYYY-MM-DD
+  currentDate: string
   day: Day | null
   onNavigate: (date: string) => void
+  currentTaskText?: string | null
 }
 
 const MOODS: { value: Mood; emoji: string; label: string }[] = [
   { value: 'tough', emoji: '😮‍💨', label: 'tough' },
-  { value: 'meh',   emoji: '😐',   label: 'meh'   },
-  { value: 'good',  emoji: '🙂',   label: 'good'  },
-  { value: 'fire',  emoji: '🔥',   label: 'fire'  },
+  { value: 'meh', emoji: '😐', label: 'meh' },
+  { value: 'good', emoji: '🙂', label: 'good' },
+  { value: 'fire', emoji: '🔥', label: 'fire' },
 ]
 
 function nextMood(current: Mood): Mood {
@@ -33,31 +34,35 @@ function getDayName(date: string): string {
 function getAdjacentLabel(date: string, offset: number): string {
   const d = new Date(date + 'T00:00:00')
   d.setDate(d.getDate() + offset)
-  return d.toLocaleDateString('en-US', { weekday: 'short' }).toLowerCase()
+  return d.toLocaleDateString('en-US', { weekday: 'short' })
 }
 
 function getTodayISO(): string {
-  return new Date().toISOString().slice(0, 10)
+  const now = new Date()
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, '0')
+  const d = String(now.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
 }
 
 function offsetDate(date: string, days: number): string {
   const d = new Date(date + 'T00:00:00')
   d.setDate(d.getDate() + days)
-  const y  = d.getFullYear()
-  const m  = String(d.getMonth() + 1).padStart(2, '0')
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
   const dd = String(d.getDate()).padStart(2, '0')
   return `${y}-${m}-${dd}`
 }
 
-export default function Header({ currentDate, day, onNavigate }: HeaderProps) {
-  const dayName    = getDayName(currentDate).toLowerCase()
+export default function Header({ currentDate, day, onNavigate, currentTaskText }: HeaderProps) {
+  const dayName = getDayName(currentDate)
   const displayDate = formatDisplayDate(currentDate)
-  const isToday    = currentDate === getTodayISO()
-  const prevLabel  = getAdjacentLabel(currentDate, -1)
-  const nextLabel  = getAdjacentLabel(currentDate, 1)
+  const isToday = currentDate === getTodayISO()
+  const prevLabel = getAdjacentLabel(currentDate, -1)
+  const nextLabel = getAdjacentLabel(currentDate, 1)
 
   const currentMood = day?.mood ?? null
-  const moodEntry   = MOODS.find(m => m.value === currentMood)
+  const moodEntry = MOODS.find(m => m.value === currentMood)
 
   function tapMood() {
     if (!day) return
@@ -65,50 +70,99 @@ export default function Header({ currentDate, day, onNavigate }: HeaderProps) {
   }
 
   return (
-    <div className="flex items-center justify-between py-3 border-b border-[#2a2a2a]">
-      {/* left: day name + date + mood */}
-      <div className="flex items-center gap-3">
-        <span className="text-lg font-medium text-[#e3e3e3] leading-none">{dayName}</span>
-        <span className="text-xs text-[#888]">
-          {displayDate}{isToday ? ' · today' : ''}
-        </span>
-        {day?.stamped && (
-          <span className="text-[10px] text-[#888] border border-[#2a2a2a] rounded-full px-1.5 py-0.5 leading-none select-none">
-            stamped ✓
+    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 py-3.5 border-b" style={{ borderColor: '#1e1e1e' }}>
+
+      {/* left: day identity */}
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="flex flex-col gap-0.5 leading-none">
+          <div className="flex items-center gap-2">
+            <span className="text-[20px] font-semibold tracking-tight text-[#e3e3e3] leading-none">
+              {dayName}
+            </span>
+            {day?.stamped && (
+              <span
+                className="text-[10px] px-1.5 py-0.5 rounded leading-none select-none"
+                style={{ background: '#1e1e1e', color: '#555', border: '1px solid #2a2a2a' }}
+              >
+                stamped
+              </span>
+            )}
+          </div>
+          <span className="text-[11px] tnum mt-1" style={{ color: '#484848' }}>
+            {displayDate}{isToday ? ' · today' : ''}
           </span>
-        )}
+        </div>
+
         <button
           type="button"
           onClick={tapMood}
-          className={`px-2 py-0.5 rounded-full border text-xs leading-5 select-none transition-colors ${
-            moodEntry
-              ? 'border-[#2a2a2a] text-[#e3e3e3] hover:bg-[#252525]'
-              : 'border-[#2a2a2a] text-[#555] hover:bg-[#252525] hover:text-[#888]'
-          }`}
+          title={moodEntry ? moodEntry.label : 'set mood'}
+          className="w-8 h-8 rounded-full flex items-center justify-center text-[16px] transition-colors shrink-0"
+          style={{
+            background: moodEntry ? '#1e1e1e' : '#161616',
+            border: `1px solid ${moodEntry ? '#2e2e2e' : '#1e1e1e'}`,
+          }}
         >
-          {moodEntry ? `${moodEntry.emoji} ${moodEntry.label}` : '· mood'}
+          {moodEntry
+            ? moodEntry.emoji
+            : <span style={{ fontSize: '9px', color: '#3a3a3a', letterSpacing: '0.02em' }}>mood</span>
+          }
         </button>
       </div>
 
-      {/* right: prev/next + quick add */}
-      <div className="flex items-center gap-1">
+      {/* center: current task */}
+      <div className="justify-self-center min-w-0 px-4 max-w-[420px]">
+        {currentTaskText && (
+          <div className="flex items-center gap-2">
+            <span
+              className="w-1.5 h-1.5 rounded-full shrink-0"
+              style={{ background: '#6965db', boxShadow: '0 0 5px rgba(105,101,219,0.6)' }}
+            />
+            <span
+              className="text-[13px] font-medium truncate"
+              style={{ color: '#7b77e0' }}
+              title={currentTaskText}
+            >
+              {currentTaskText}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* right: navigation */}
+      <div className="flex items-center gap-0.5 justify-self-end">
         <button
           type="button"
           onClick={() => onNavigate(offsetDate(currentDate, -1))}
-          className="px-2 py-1 text-xs text-[#888] hover:text-[#e3e3e3] rounded hover:bg-[#252525] transition-colors"
+          className="px-3 py-1.5 text-[11px] rounded transition-colors tnum"
+          style={{ color: '#484848' }}
+          onMouseEnter={e => {
+            e.currentTarget.style.color = '#e3e3e3'
+            e.currentTarget.style.background = '#1a1a1a'
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.color = '#484848'
+            e.currentTarget.style.background = 'transparent'
+          }}
         >
-          ‹ {prevLabel}
+          ← {prevLabel}
         </button>
         <button
           type="button"
           onClick={() => onNavigate(offsetDate(currentDate, 1))}
-          className="px-2 py-1 text-xs text-[#888] hover:text-[#e3e3e3] rounded hover:bg-[#252525] transition-colors"
+          className="px-3 py-1.5 text-[11px] rounded transition-colors tnum"
+          style={{ color: '#484848' }}
+          onMouseEnter={e => {
+            e.currentTarget.style.color = '#e3e3e3'
+            e.currentTarget.style.background = '#1a1a1a'
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.color = '#484848'
+            e.currentTarget.style.background = 'transparent'
+          }}
         >
-          {nextLabel} ›
+          {nextLabel} →
         </button>
-        <div className="ml-2 px-2 py-0.5 rounded border border-[#2a2a2a] text-xs text-[#555] leading-5 select-none">
-          / quick add
-        </div>
       </div>
     </div>
   )

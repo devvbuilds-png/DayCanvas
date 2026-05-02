@@ -64,7 +64,7 @@ export default function DetailPanel({ todoId, currentDate, onClose }: DetailPane
     db.todos.update(todoId, { duration_minutes: newDuration, updated_at: new Date().toISOString() })
   }
 
-  const stepBtn = 'px-2 py-1 text-[10px] text-[#888] border border-[#2a2a2a] rounded hover:bg-[#252525] hover:text-[#e3e3e3] transition-colors'
+  const stepBtn = 'px-2 py-1 text-[10px] rounded transition-colors tnum'
 
   return (
     <>
@@ -73,8 +73,8 @@ export default function DetailPanel({ todoId, currentDate, onClose }: DetailPane
 
       {/* panel */}
       <div
-        className="fixed right-0 inset-y-0 w-[280px] border-l z-30 flex flex-col p-4 gap-5 overflow-y-auto"
-        style={{ background: '#1e1e1e', borderColor: '#2a2a2a' }}
+        className="fixed right-0 inset-y-0 w-[280px] z-30 flex flex-col p-5 gap-5 overflow-y-auto"
+        style={{ background: '#161616', borderLeft: '1px solid #1e1e1e' }}
       >
         {/* todo text */}
         <input
@@ -85,42 +85,66 @@ export default function DetailPanel({ todoId, currentDate, onClose }: DetailPane
           onChange={e => setLocalText(e.target.value)}
           onBlur={saveText}
           onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
-          className="text-[15px] font-medium text-[#e3e3e3] outline-none border-b pb-2 w-full bg-transparent"
-          style={{ borderColor: '#2a2a2a' }}
+          className="text-[15px] font-semibold text-[#d8d8d8] outline-none border-b pb-2.5 w-full bg-transparent tracking-tight"
+          style={{ borderColor: '#222' }}
         />
 
         {/* lane indicator */}
         <div className="flex items-center gap-1.5">
           <span
-            className="w-2.5 h-2.5 rounded-full shrink-0"
-            style={{ backgroundColor: lane.color }}
+            className="w-[6px] h-[6px] rounded-sm shrink-0"
+            style={{ backgroundColor: lane.color, opacity: 0.85 }}
           />
-          <span className="text-xs text-[#888]">{lane.name.toLowerCase()}</span>
+          <span className="text-[11px]" style={{ color: '#555' }}>{lane.name}</span>
         </div>
 
         {/* start time */}
         <div>
-          <div className="text-[10px] tracking-wide text-[#555] mb-1.5">start</div>
+          <div className="text-[10px] tracking-widest uppercase text-[#383838] mb-1.5">start</div>
           <div className="flex items-center gap-2">
-            <button className={stepBtn} onClick={() => adjustStart(-30)}>– 30m</button>
-            <span className="flex-1 text-center text-sm text-[#e3e3e3]">{formatTime(startMins)}</span>
-            <button className={stepBtn} onClick={() => adjustStart(30)}>+ 30m</button>
+            <button
+              className={stepBtn}
+              style={{ color: '#555', border: '1px solid #222' }}
+              onMouseEnter={e => { e.currentTarget.style.color = '#e3e3e3'; e.currentTarget.style.background = '#1e1e1e' }}
+              onMouseLeave={e => { e.currentTarget.style.color = '#555'; e.currentTarget.style.background = 'transparent' }}
+              onClick={() => adjustStart(-30)}
+            >– 30m</button>
+            <span className="flex-1 text-center text-[13px] tnum" style={{ color: '#c8c8c8' }}>{formatTime(startMins)}</span>
+            <button
+              className={stepBtn}
+              style={{ color: '#555', border: '1px solid #222' }}
+              onMouseEnter={e => { e.currentTarget.style.color = '#e3e3e3'; e.currentTarget.style.background = '#1e1e1e' }}
+              onMouseLeave={e => { e.currentTarget.style.color = '#555'; e.currentTarget.style.background = 'transparent' }}
+              onClick={() => adjustStart(30)}
+            >+ 30m</button>
           </div>
         </div>
 
         {/* end time */}
         <div>
-          <div className="text-[10px] tracking-wide text-[#555] mb-1.5">end</div>
+          <div className="text-[10px] tracking-widest uppercase text-[#383838] mb-1.5">end</div>
           <div className="flex items-center gap-2">
-            <button className={stepBtn} onClick={() => adjustEnd(-30)}>– 30m</button>
-            <span className="flex-1 text-center text-sm text-[#e3e3e3]">{formatTime(endMins)}</span>
-            <button className={stepBtn} onClick={() => adjustEnd(30)}>+ 30m</button>
+            <button
+              className={stepBtn}
+              style={{ color: '#555', border: '1px solid #222' }}
+              onMouseEnter={e => { e.currentTarget.style.color = '#e3e3e3'; e.currentTarget.style.background = '#1e1e1e' }}
+              onMouseLeave={e => { e.currentTarget.style.color = '#555'; e.currentTarget.style.background = 'transparent' }}
+              onClick={() => adjustEnd(-30)}
+            >– 30m</button>
+            <span className="flex-1 text-center text-[13px] tnum" style={{ color: '#c8c8c8' }}>{formatTime(endMins)}</span>
+            <button
+              className={stepBtn}
+              style={{ color: '#555', border: '1px solid #222' }}
+              onMouseEnter={e => { e.currentTarget.style.color = '#e3e3e3'; e.currentTarget.style.background = '#1e1e1e' }}
+              onMouseLeave={e => { e.currentTarget.style.color = '#555'; e.currentTarget.style.background = 'transparent' }}
+              onClick={() => adjustEnd(30)}
+            >+ 30m</button>
           </div>
         </div>
 
         {/* notes */}
         <div className="flex-1 flex flex-col">
-          <div className="text-[10px] tracking-wide text-[#555] mb-1.5">notes</div>
+          <div className="text-[10px] tracking-widest uppercase text-[#383838] mb-1.5">notes</div>
           <textarea
             value={localDesc}
             onChange={e => setLocalDesc(e.target.value)}
@@ -132,6 +156,19 @@ export default function DetailPanel({ todoId, currentDate, onClose }: DetailPane
 
         {/* action buttons */}
         <div className="flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={async () => {
+              onClose()
+              await db.todos.delete(todoId)
+            }}
+            className="w-full py-1.5 rounded-md text-[11px] font-medium transition-colors"
+            style={{ border: '1px solid #222', color: '#555' }}
+            onMouseEnter={e => { e.currentTarget.style.color = '#c05040'; e.currentTarget.style.background = '#1e1412'; e.currentTarget.style.borderColor = '#3a1e18' }}
+            onMouseLeave={e => { e.currentTarget.style.color = '#555'; e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = '#222' }}
+          >
+            delete task
+          </button>
           {todo.status !== 'missed' && (
             <button
               type="button"
@@ -139,11 +176,12 @@ export default function DetailPanel({ todoId, currentDate, onClose }: DetailPane
                 const newStatus = todo.status === 'done' ? 'scheduled' : 'done'
                 db.todos.update(todoId, { status: newStatus, updated_at: new Date().toISOString() })
               }}
-              className={`w-full py-1.5 rounded text-xs font-medium transition-colors ${
+              className="w-full py-1.5 rounded-md text-[11px] font-medium transition-colors"
+              style={
                 todo.status === 'done'
-                  ? 'border border-[#2a2a2a] text-[#888] hover:bg-[#252525]'
-                  : 'bg-[#534AB7] text-white hover:bg-[#4840a3]'
-              }`}
+                  ? { border: '1px solid #222', color: '#555' }
+                  : { background: '#4b47a8', color: '#fff', border: '1px solid transparent' }
+              }
             >
               {todo.status === 'done' ? 'mark incomplete' : 'mark done ✓'}
             </button>
@@ -156,12 +194,12 @@ export default function DetailPanel({ todoId, currentDate, onClose }: DetailPane
                 const newStatus = todo.status === 'missed' ? 'scheduled' : 'missed'
                 db.todos.update(todoId, { status: newStatus, updated_at: new Date().toISOString() })
               }}
-              className={`w-full py-1.5 rounded text-xs font-medium transition-colors ${
+              className="w-full py-1.5 rounded-md text-[11px] font-medium transition-colors"
+              style={
                 todo.status === 'missed'
-                  ? 'border text-[#D85A30] hover:opacity-80'
-                  : 'border border-[#2a2a2a] text-[#888] hover:bg-[#252525] hover:text-[#D85A30]'
-              }`}
-              style={todo.status === 'missed' ? { background: '#2a1a14', borderColor: '#4a2a1c' } : {}}
+                  ? { background: '#1e1210', border: '1px solid #3a1e18', color: '#b04530' }
+                  : { border: '1px solid #222', color: '#555' }
+              }
             >
               {todo.status === 'missed' ? 'mark as scheduled' : 'mark missed ✗'}
             </button>

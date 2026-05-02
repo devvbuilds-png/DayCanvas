@@ -8,14 +8,35 @@ body {
   margin: 0;
   background: #121212;
   color: #e3e3e3;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   color-scheme: dark;
+  font-feature-settings: 'cv11', 'ss01';
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
 }
 
 #root {
-  height: 100svh;
-  overflow: hidden;
+  min-height: 100svh;
+}
+
+/* scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a2a2a;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #363636;
 }
 
 .whiteboard-surface {
@@ -35,11 +56,19 @@ body {
   --tlui-border: #2a2a2a;
 }
 
-.whiteboard-surface .tlui-toolbar,
 .whiteboard-surface .tlui-style-panel,
 .whiteboard-surface .tlui-help-menu,
 .whiteboard-surface .tlui-menu-zone {
   background: transparent !important;
+}
+
+.whiteboard-surface .tlui-style-panel__wrapper {
+  position: fixed !important;
+  left: 16px !important;
+  top: 292px !important;
+  right: auto !important;
+  margin: 0 !important;
+  z-index: 9999 !important;
 }
 
 .whiteboard-surface .tlui-toolbar__tools,
@@ -48,4 +77,69 @@ body {
 .whiteboard-surface .tlui-menu {
   background: #1e1e1e !important;
   border-color: #2a2a2a !important;
+}
+
+.whiteboard-surface .tlui-main-toolbar {
+  position: absolute !important;
+  left: 16px !important;
+  top: 8px !important;
+  bottom: auto !important;
+  right: auto !important;
+  transform: none !important;
+  z-index: 10000 !important;
+  width: 52px !important;
+  max-width: 52px !important;
+  display: block !important;
+  pointer-events: auto;
+}
+
+.whiteboard-surface .tlui-main-toolbar--vertical {
+  padding-left: 0 !important;
+  top: 8px !important;
+  bottom: auto !important;
+}
+
+.whiteboard-surface .tlui-main-toolbar__inner {
+  width: 52px !important;
+  align-items: center;
+  pointer-events: auto;
+}
+
+.whiteboard-surface .tlui-main-toolbar__left,
+.whiteboard-surface .tlui-main-toolbar__tools,
+.whiteboard-surface .tlui-main-toolbar__extras,
+.whiteboard-surface .tlui-main-toolbar__extras__controls {
+  pointer-events: auto;
+}
+
+.whiteboard-surface .tlui-main-toolbar__left {
+  width: 52px !important;
+}
+
+.whiteboard-surface .tlui-main-toolbar .tlui-toolbar {
+  width: 52px !important;
+  background: transparent !important;
+}
+
+.whiteboard-surface .tlui-main-toolbar__tools {
+  width: 52px !important;
+  max-width: 52px !important;
+  overflow: visible !important;
+}
+
+.whiteboard-surface .tlui-main-toolbar__tools .tlui-button__tool {
+  width: 52px !important;
+  height: 44px !important;
+}
+
+.whiteboard-surface .tlui-main-toolbar__extras {
+  width: 52px !important;
+  top: 0 !important;
+  margin-top: 8px;
+}
+
+.whiteboard-surface .tlui-main-toolbar__extras__controls {
+  width: 52px !important;
+  margin-left: 0 !important;
+  border-radius: var(--tl-radius-4) !important;
 }

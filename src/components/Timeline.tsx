@@ -19,18 +19,18 @@ const HOURS = Array.from({ length: 19 }, (_, i) => {
 })
 
 interface NowState {
-  pct: number    // 0–100 within 6a–12a window
-  label: string  // "now · 10:42a"
+  pct: number
+  label: string
 }
 
 function getNowState(): NowState | null {
-  const now  = new Date()
+  const now = new Date()
   const mins = (now.getHours() - 6) * 60 + now.getMinutes()
   if (mins < 0 || mins >= 1080) return null
-  const h    = now.getHours()
-  const m    = now.getMinutes()
-  const h12  = h % 12 || 12
-  const label = `now · ${h12}:${String(m).padStart(2, '0')}${h >= 12 ? 'p' : 'a'}`
+  const h = now.getHours()
+  const m = now.getMinutes()
+  const h12 = h % 12 || 12
+  const label = `${h12}:${String(m).padStart(2, '0')}${h >= 12 ? 'p' : 'a'}`
   return { pct: (mins / 1080) * 100, label }
 }
 
@@ -43,32 +43,54 @@ export default function Timeline({ lanes, currentDate, onOpen, stamped, gestureA
   }, [])
 
   return (
-    <div className="border border-[#2a2a2a] rounded-md" style={{ background: '#1e1e1e' }}>
-      {/* hour markers */}
-      <div className="flex items-end px-3 pt-2 pb-1 border-b border-[#2a2a2a]">
+    <div className="rounded-md overflow-hidden" style={{ border: '1px solid #1e1e1e', background: '#161616' }}>
+      {/* hour ruler */}
+      <div className="flex items-stretch px-3 pt-2" style={{ borderBottom: '1px solid #1e1e1e' }}>
         <div className="w-20 shrink-0" />
-        <div className="flex-1 flex justify-between">
-          {HOURS.map(h => (
-            <span key={h} className="text-[10px] leading-none" style={{ color: '#444' }}>{h}</span>
+        <div className="flex-1 flex justify-between items-end pb-0">
+          {HOURS.map((h, i) => (
+            <div key={h} className="flex flex-col items-center">
+              <span
+                className="text-[9px] leading-none mb-1 tnum"
+                style={{
+                  color: h === '12p' ? '#484848' : '#2e2e2e',
+                  fontWeight: h === '12p' ? '500' : '400',
+                }}
+              >
+                {h}
+              </span>
+              <div
+                style={{
+                  width: '1px',
+                  height: (i === 0 || h === '12p' || h === '12a') ? '6px' : '3px',
+                  background: '#252525',
+                }}
+              />
+            </div>
           ))}
         </div>
       </div>
 
-      {/* lane rows — relative so now-line overlay can use absolute inset */}
-      <div className="flex flex-col gap-1.5 px-3 py-2 relative">
+      {/* lane rows */}
+      <div className="flex flex-col gap-1.5 px-3 py-2.5 relative">
 
-        {/* now-line: spans full height of lanes, aligned with track area */}
+        {/* now-line */}
         {now && (
           <div className="absolute inset-0 px-3 flex pointer-events-none">
             <div className="w-20 shrink-0" />
             <div className="flex-1 relative">
               <div
-                className="absolute top-0 bottom-0 w-px"
-                style={{ left: `${now.pct}%`, background: '#E24B4A' }}
+                className="absolute top-0 bottom-0"
+                style={{
+                  left: `${now.pct}%`,
+                  width: '1px',
+                  background: '#E24B4A',
+                  boxShadow: '0 0 5px rgba(226,75,74,0.3)',
+                }}
               >
                 <span
-                  className="absolute top-1 left-1.5 text-[9px] whitespace-nowrap leading-none select-none"
-                  style={{ color: '#E24B4A' }}
+                  className="absolute top-2 left-1.5 text-[9px] whitespace-nowrap leading-none select-none tnum"
+                  style={{ color: '#c94040' }}
                 >
                   {now.label}
                 </span>

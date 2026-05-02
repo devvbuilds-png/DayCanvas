@@ -1,12 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   DndContext,
   DragOverlay,
   PointerSensor,
   useSensor,
   useSensors,
-  type DragStartEvent,
   type DragEndEvent,
+  type DragStartEvent,
 } from '@dnd-kit/core'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from './db/db'
@@ -33,17 +33,25 @@ interface GestureUndoState {
 }
 
 export default function App() {
-  const [currentDate,    setCurrentDate]    = useState(todayISO)
-  const [activeDragId,   setActiveDragId]   = useState<string | null>(null)
+  const [currentDate, setCurrentDate] = useState(todayISO)
+  const [activeDragId, setActiveDragId] = useState<string | null>(null)
   const [selectedTodoId, setSelectedTodoId] = useState<string | null>(null)
   const [showStampSheet, setShowStampSheet] = useState(false)
-  const [stampTodos,     setStampTodos]     = useState<Todo[]>([])
-  const [isShiftPressed, setShiftPressed]   = useState(false)
+  const [stampTodos, setStampTodos] = useState<Todo[]>([])
+  const [isShiftPressed, setShiftPressed] = useState(false)
   const [gestureLatched, setGestureLatched] = useState(false)
   const [lastGestureUndo, setLastGestureUndo] = useState<GestureUndoState | null>(null)
-  const todoContentRef = useRef<HTMLDivElement>(null)
+  const [nowTick, setNowTick] = useState(() => Date.now())
 
-  useEffect(() => { seedIfEmpty() }, [])
+  useEffect(() => {
+    seedIfEmpty()
+  }, [])
+
+  useEffect(() => {
+    const id = window.setInterval(() => setNowTick(Date.now()), 60_000)
+    return () => window.clearInterval(id)
+  }, [])
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Shift') setShiftPressed(true)
@@ -56,6 +64,7 @@ export default function App() {
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('keyup', onKeyUp)
     window.addEventListener('blur', onBlur)
+
     return () => {
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('keyup', onKeyUp)
@@ -64,30 +73,54 @@ export default function App() {
   }, [])
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
   )
 
-  const lanes    = useLiveQuery(() => db.lanes.orderBy('order').toArray(), []) ?? []
-  const day      = useLiveQuery(() => db.days.get(currentDate), [currentDate]) ?? null
-  const laneById = Object.fromEntries(lanes.map(l => [l.id, l]))
+  const lanes = useLiveQuery(() => db.lanes.orderBy('order').toArray(), []) ?? []
+  const day = useLiveQuery(() => db.days.get(currentDate), [currentDate]) ?? null
+  const laneById = Object.fromEntries(lanes.map(lane => [lane.id, lane]))
 
   const activeTodo = useLiveQuery(
     () => activeDragId ? db.todos.get(activeDragId) : undefined,
-    [activeDragId]
+    [activeDragId],
   )
   const activeLane = activeTodo ? laneById[activeTodo.lane_id] : undefined
 
+  const currentTask = useLiveQuery(async () => {
+    const now = new Date(nowTick)
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+    if (currentDate !== today) return null
+
+    const currentMinutes = (now.getHours() - 6) * 60 + now.getMinutes()
+    if (currentMinutes < 0 || currentMinutes >= 1080) return null
+
+    const scheduled = await db.todos
+      .where('status')
+      .equals('scheduled')
+      .filter(todo => todo.start_time?.startsWith(currentDate) ?? false)
+      .toArray()
+
+    return scheduled.find(todo => {
+      const start = minutesFrom6am(todo.start_time!)
+      const duration = todo.duration_minutes ?? 60
+      return currentMinutes >= start && currentMinutes < start + duration
+    }) ?? null
+  }, [currentDate, nowTick]) ?? null
+
   const stamped = day?.stamped ?? false
   const gestureArmed = !stamped && (isShiftPressed || gestureLatched)
+  const currentTaskText = currentTask?.text ?? null
 
   async function handleStamp() {
     if (!day || stamped) return
+
     const unresolved = await db.todos
-      .filter(t =>
-        (t.status === 'scheduled' || t.status === 'missed') &&
-        (t.start_time?.startsWith(currentDate) ?? false)
+      .filter(todo =>
+        (todo.status === 'scheduled' || todo.status === 'missed') &&
+        (todo.start_time?.startsWith(currentDate) ?? false),
       )
       .toArray()
+
     if (unresolved.length === 0) {
       await db.days.update(currentDate, { stamped: true })
     } else {
@@ -119,13 +152,25 @@ export default function App() {
     if (!over || !activeTodo) return
 
     const overId = String(over.id)
+
+    if (overId === 'parking-lot') {
+      if (activeTodo.status !== 'scheduled') return
+      db.todos.update(String(active.id), {
+        status: 'parked',
+        start_time: null,
+        duration_minutes: null,
+        updated_at: new Date().toISOString(),
+      })
+      return
+    }
+
     if (!overId.startsWith('track-')) return
 
-    const laneId    = overId.slice(6)
-    const startX    = (activatorEvent as PointerEvent).clientX
-    const dropX     = startX + delta.x
+    const laneId = overId.slice(6)
+    const startX = (activatorEvent as PointerEvent).clientX
+    const dropX = startX + delta.x
     const relativeX = Math.max(0, dropX - over.rect.left)
-    const snapped   = Math.round((relativeX / over.rect.width) * 1080 / 30) * 30
+    const snapped = Math.round((relativeX / over.rect.width) * 1080 / 30) * 30
     const clampedMin = Math.max(0, Math.min(snapped, 1050))
 
     if (
@@ -133,17 +178,19 @@ export default function App() {
       activeTodo.lane_id === laneId &&
       activeTodo.start_time !== null &&
       minutesFrom6am(activeTodo.start_time) === clampedMin
-    ) return
+    ) {
+      return
+    }
 
     const base = new Date(`${currentDate}T06:00:00`)
     base.setMinutes(base.getMinutes() + clampedMin)
 
     db.todos.update(String(active.id), {
-      status:           'scheduled',
-      start_time:       base.toISOString(),
+      status: 'scheduled',
+      start_time: base.toISOString(),
       duration_minutes: activeTodo.status === 'parked' ? 60 : (activeTodo.duration_minutes ?? 60),
-      lane_id:          laneId,
-      updated_at:       new Date().toISOString(),
+      lane_id: laneId,
+      updated_at: new Date().toISOString(),
     })
   }
 
@@ -167,17 +214,21 @@ export default function App() {
     setLastGestureUndo(null)
   }
 
+  function jumpToWhiteboard() {
+    document.getElementById('whiteboard-start')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   return (
     <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
-      <div className="h-screen flex flex-col overflow-hidden" style={{ background: '#121212' }}>
-
-        {/* todo section */}
+      <div className="min-h-screen flex flex-col" style={{ background: '#121212' }}>
         <div className="flex flex-col shrink-0 relative">
-          <div
-            ref={todoContentRef}
-            className="px-6 flex flex-col"
-          >
-            <Header currentDate={currentDate} day={day} onNavigate={navigate} />
+          <div className="px-6 flex flex-col">
+            <Header
+              currentDate={currentDate}
+              day={day}
+              onNavigate={navigate}
+              currentTaskText={currentTaskText}
+            />
             <div className="mt-2">
               <ParkingLot
                 lanes={lanes}
@@ -198,7 +249,11 @@ export default function App() {
                 gestureArmed={gestureArmed}
               />
             </div>
-            <Footer stamped={stamped} onStamp={handleStamp} />
+            <Footer
+              stamped={stamped}
+              onStamp={handleStamp}
+              onJumpToWhiteboard={jumpToWhiteboard}
+            />
           </div>
           {gestureArmed && (
             <TodoGestureOverlay
@@ -208,23 +263,25 @@ export default function App() {
           )}
         </div>
 
-        {/* whiteboard */}
-        <div className="flex-1 overflow-hidden">
+        <div id="whiteboard-start" className="h-screen shrink-0 overflow-hidden">
           <Whiteboard lanes={lanes} currentDate={currentDate} />
         </div>
-
       </div>
 
       <DragOverlay dropAnimation={null}>
         {activeTodo && activeLane ? (
           <div
-            className="flex items-center pl-2.5 pr-4 py-1 rounded text-[11px] leading-snug border-l-[3px] select-none cursor-grabbing"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] leading-snug select-none cursor-grabbing"
             style={{
-              borderLeftColor: activeLane.color,
-              background: activeTodo.status === 'parked' ? '#2a2a2a' : '#1e1e1e',
-              color: '#e3e3e3',
+              background: `rgba(${parseInt(activeLane.color.slice(1,3),16)},${parseInt(activeLane.color.slice(3,5),16)},${parseInt(activeLane.color.slice(5,7),16)},${activeTodo.status === 'parked' ? 0.1 : 0.18})`,
+              border: `1px solid rgba(${parseInt(activeLane.color.slice(1,3),16)},${parseInt(activeLane.color.slice(3,5),16)},${parseInt(activeLane.color.slice(5,7),16)},0.3)`,
+              color: '#d8d8d8',
             }}
           >
+            <span
+              className="w-[5px] h-[5px] rounded-sm shrink-0"
+              style={{ backgroundColor: activeLane.color, opacity: 0.85 }}
+            />
             {activeTodo.text}
           </div>
         ) : null}
@@ -244,7 +301,10 @@ export default function App() {
           lanes={lanes}
           currentDate={currentDate}
           onStamped={handleStamped}
-          onCancel={() => { setShowStampSheet(false); setStampTodos([]) }}
+          onCancel={() => {
+            setShowStampSheet(false)
+            setStampTodos([])
+          }}
         />
       )}
     </DndContext>
