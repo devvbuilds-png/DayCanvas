@@ -51,6 +51,8 @@ function getPlainText(editor: Editor, shape: TLShape): string {
   return util.getText?.(shape).trim() ?? ''
 }
 
+const tldrawLicenseKey = import.meta.env.VITE_TLDRAW_LICENSE_KEY?.trim() || undefined
+
 function LanePicker({ lanes, x, y, onPick, onCancel }: {
   lanes: Lane[]
   x: number
@@ -138,6 +140,9 @@ export default function Whiteboard({ lanes, currentDate }: Props) {
 
   useEffect(() => { currentDateRef.current = currentDate }, [currentDate])
   useEffect(() => () => { cleanupRef.current?.() }, [])
+  useEffect(() => {
+    console.info('[day-canvas] tldraw license present:', Boolean(tldrawLicenseKey))
+  }, [])
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
@@ -242,7 +247,7 @@ export default function Whiteboard({ lanes, currentDate }: Props) {
       style={{ width: '100%', height: '100%', position: 'relative' }}
     >
       <Tldraw
-        licenseKey={import.meta.env.VITE_TLDRAW_LICENSE_KEY}
+        licenseKey={tldrawLicenseKey}
         autoFocus={false}
         components={components}
         persistenceKey="day-canvas-whiteboard"
