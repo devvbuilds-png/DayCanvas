@@ -8,7 +8,6 @@ import {
   type TLShape,
   type TLShapeId,
 } from 'tldraw'
-import 'tldraw/tldraw.css'
 import { db } from '../db/db'
 import type { Lane } from '../db/schema'
 
