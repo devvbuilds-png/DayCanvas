@@ -242,6 +242,7 @@ export default function Whiteboard({ lanes, currentDate }: Props) {
       style={{ width: '100%', height: '100%', position: 'relative' }}
     >
       <Tldraw
+        licenseKey={import.meta.env.VITE_TLDRAW_LICENSE_KEY}
         autoFocus={false}
         components={components}
         persistenceKey="day-canvas-whiteboard"
