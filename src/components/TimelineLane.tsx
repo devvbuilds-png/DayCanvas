@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useDroppable } from '@dnd-kit/core'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
@@ -27,6 +28,7 @@ const GRID_LINES = Array.from({ length: 35 }, (_, i) => {
 
 export default function TimelineLane({ lane, currentDate, onOpen, stamped, gestureArmed }: TimelineLaneProps) {
   const { setNodeRef, isOver } = useDroppable({ id: `track-${lane.id}` })
+  const [isHovered, setIsHovered] = useState(false)
 
   const scheduledTodos = useLiveQuery(
     () =>
@@ -59,8 +61,10 @@ export default function TimelineLane({ lane, currentDate, onOpen, stamped, gestu
         ref={setNodeRef}
         data-dropzone={`lane-${lane.id}`}
         className="flex-1 h-10 rounded-md relative transition-colors"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
         style={{
-          background: hexToRgba(lane.color, isOver ? 0.22 : 0.10),
+          background: hexToRgba(lane.color, isOver ? 0.22 : isHovered ? 0.16 : 0.10),
           outline: isOver ? `1px dashed ${hexToRgba(lane.color, 0.5)}` : undefined,
         }}
       >

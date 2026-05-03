@@ -35,6 +35,7 @@ export default function ParkingLot({
 }: ParkingLotProps) {
   const [composing, setComposing] = useState(false)
   const [managingLanes, setManagingLanes] = useState(false)
+  const [isHovered, setIsHovered] = useState(false)
   const { setNodeRef, isOver } = useDroppable({ id: 'parking-lot' })
 
   const parkedTodos = useLiveQuery(
@@ -71,9 +72,11 @@ export default function ParkingLot({
       <div
         ref={setNodeRef}
         data-dropzone="parking-lot"
-        className="rounded-md"
+        className="rounded-md transition-colors"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
         style={{
-          background: '#161616',
+          background: isOver ? '#1b1b1f' : isHovered ? '#191919' : '#161616',
           border: `1px solid ${isOver ? '#6965db44' : '#1e1e1e'}`,
           outline: isOver ? '1px solid #6965db44' : undefined,
         }}
