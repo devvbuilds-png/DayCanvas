@@ -63,6 +63,7 @@ export default function Header({ currentDate, day, onNavigate, currentTaskText }
 
   const currentMood = day?.mood ?? null
   const moodEntry = MOODS.find(m => m.value === currentMood)
+  const currentTaskLabel = currentTaskText || 'no current task'
 
   function tapMood() {
     if (!day) return
@@ -97,14 +98,21 @@ export default function Header({ currentDate, day, onNavigate, currentTaskText }
           type="button"
           onClick={tapMood}
           title={moodEntry ? moodEntry.label : 'set mood'}
-          className="w-8 h-8 rounded-full flex items-center justify-center text-[16px] transition-colors shrink-0"
+          className="h-8 rounded-full flex items-center justify-center gap-1.5 px-2.5 text-[16px] transition-colors shrink-0"
           style={{
             background: moodEntry ? '#1e1e1e' : '#161616',
             border: `1px solid ${moodEntry ? '#2e2e2e' : '#1e1e1e'}`,
           }}
         >
           {moodEntry
-            ? moodEntry.emoji
+            ? (
+              <>
+                <span>{moodEntry.emoji}</span>
+                <span className="text-[10px] font-medium uppercase" style={{ color: '#9a9a9a' }}>
+                  {moodEntry.label}
+                </span>
+              </>
+            )
             : <span style={{ fontSize: '9px', color: '#3a3a3a', letterSpacing: '0.02em' }}>mood</span>
           }
         </button>
@@ -112,21 +120,22 @@ export default function Header({ currentDate, day, onNavigate, currentTaskText }
 
       {/* center: current task */}
       <div className="justify-self-center min-w-0 px-4 max-w-[420px]">
-        {currentTaskText && (
-          <div className="flex items-center gap-2">
-            <span
-              className="w-1.5 h-1.5 rounded-full shrink-0"
-              style={{ background: '#6965db', boxShadow: '0 0 5px rgba(105,101,219,0.6)' }}
-            />
-            <span
-              className="text-[13px] font-medium truncate"
-              style={{ color: '#7b77e0' }}
-              title={currentTaskText}
-            >
-              {currentTaskText}
-            </span>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          <span
+            className="w-1.5 h-1.5 rounded-full shrink-0"
+            style={{
+              background: currentTaskText ? '#6965db' : '#3a3a3a',
+              boxShadow: currentTaskText ? '0 0 5px rgba(105,101,219,0.6)' : 'none',
+            }}
+          />
+          <span
+            className="text-[13px] font-medium truncate"
+            style={{ color: currentTaskText ? '#7b77e0' : '#565656' }}
+            title={currentTaskLabel}
+          >
+            {currentTaskLabel}
+          </span>
+        </div>
       </div>
 
       {/* right: navigation */}
