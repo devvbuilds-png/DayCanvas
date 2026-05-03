@@ -63,7 +63,7 @@ export default function Header({ currentDate, day, onNavigate, currentTaskText }
 
   const currentMood = day?.mood ?? null
   const moodEntry = MOODS.find(m => m.value === currentMood)
-  const currentTaskLabel = currentTaskText || 'no current task'
+  const currentTaskLabel = currentTaskText || 'No Current Task'
 
   function tapMood() {
     if (!day) return
@@ -129,8 +129,8 @@ export default function Header({ currentDate, day, onNavigate, currentTaskText }
             }}
           />
           <span
-            className="text-[13px] font-medium truncate"
-            style={{ color: currentTaskText ? '#7b77e0' : '#565656' }}
+            className={`text-[13px] font-medium truncate ${currentTaskText ? '' : 'uppercase tracking-[0.08em]'}`}
+            style={{ color: currentTaskText ? '#7b77e0' : '#8a8478' }}
             title={currentTaskLabel}
           >
             {currentTaskLabel}
