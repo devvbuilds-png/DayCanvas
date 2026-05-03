@@ -84,11 +84,17 @@ export default function ParkingLot({
         <div className="flex items-center justify-between px-3 py-2" style={{ borderBottom: '1px solid #1e1e1e' }}>
           {/* left: headline + add */}
           <div className="flex items-center gap-2.5">
-            <span className="text-[12px] font-semibold" style={{ color: '#888' }}>
+            <span
+              className="text-[12px] font-semibold transition-colors"
+              style={{ color: isOver ? '#d4d4d4' : isHovered ? '#b8b8b8' : '#888' }}
+            >
               Parking lot
             </span>
             {parkedTodos.length > 0 && (
-              <span className="text-[11px]" style={{ color: '#444' }}>
+              <span
+                className="text-[11px] transition-colors"
+                style={{ color: isOver ? '#7a7a7a' : isHovered ? '#5f5f5f' : '#444' }}
+              >
                 {parkedTodos.length}
               </span>
             )}
@@ -139,7 +145,7 @@ export default function ParkingLot({
               }}
               title="manage lanes"
             >
-              lanes
+              + lanes
             </button>
 
             {!stamped && (

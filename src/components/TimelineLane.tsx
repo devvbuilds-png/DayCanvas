@@ -45,12 +45,16 @@ export default function TimelineLane({ lane, currentDate, onOpen, stamped, gestu
   ) ?? []
 
   return (
-    <div className="flex items-stretch">
+    <div
+      className="flex items-stretch"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       {/* label gutter */}
       <div className="w-20 shrink-0 flex items-center pr-3">
         <span
-          className="text-[11px] font-medium leading-none tracking-wide"
-          style={{ color: hexToRgba(lane.color, 0.75) }}
+          className="text-[11px] font-medium leading-none tracking-wide transition-colors"
+          style={{ color: hexToRgba(lane.color, isOver ? 1 : isHovered ? 0.95 : 0.75) }}
         >
           {lane.name}
         </span>
@@ -61,8 +65,6 @@ export default function TimelineLane({ lane, currentDate, onOpen, stamped, gestu
         ref={setNodeRef}
         data-dropzone={`lane-${lane.id}`}
         className="flex-1 h-10 rounded-md relative transition-colors"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
         style={{
           background: hexToRgba(lane.color, isOver ? 0.22 : isHovered ? 0.16 : 0.10),
           outline: isOver ? `1px dashed ${hexToRgba(lane.color, 0.5)}` : undefined,
