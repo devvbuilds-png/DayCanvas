@@ -138,7 +138,7 @@ export default function StampSheet({ todos, lanes, currentDate, onStamped, onCan
 
   useEffect(() => {
     if (resolvedIds.size > 0 && unresolved.length === 0) onStamped()
-  }, [resolvedIds])
+  }, [onStamped, resolvedIds.size, unresolved.length])
 
   function onResolved(id: string) {
     setResolvedIds(prev => new Set([...prev, id]))

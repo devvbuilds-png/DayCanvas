@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
+import type { Lane, Todo } from '../db/schema'
 import { minutesFrom6am, formatTime } from '../lib/time'
 
 interface DetailPanelProps {
@@ -16,17 +17,6 @@ export default function DetailPanel({ todoId, currentDate, onClose }: DetailPane
     [todo?.lane_id]
   )
 
-  const [localText, setLocalText] = useState('')
-  const [localDesc, setLocalDesc] = useState('')
-  const textRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    if (todo) {
-      setLocalText(todo.text)
-      setLocalDesc(todo.description ?? '')
-    }
-  }, [todo?.id])
-
   useEffect(() => {
     function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', onKey)
@@ -34,6 +24,31 @@ export default function DetailPanel({ todoId, currentDate, onClose }: DetailPane
   }, [onClose])
 
   if (!todo || !lane || !todo.start_time) return null
+  const scheduledTodo = todo as Todo & { start_time: string }
+
+  return (
+    <DetailPanelContent
+      key={scheduledTodo.id}
+      todo={scheduledTodo}
+      lane={lane}
+      todoId={todoId}
+      currentDate={currentDate}
+      onClose={onClose}
+    />
+  )
+}
+
+interface DetailPanelContentProps {
+  todo: Todo & { start_time: string }
+  lane: Lane
+  todoId: string
+  currentDate: string
+  onClose: () => void
+}
+
+function DetailPanelContent({ todo, lane, todoId, currentDate, onClose }: DetailPanelContentProps) {
+  const [localText, setLocalText] = useState(todo.text)
+  const [localDesc, setLocalDesc] = useState(todo.description ?? '')
 
   const startMins = minutesFrom6am(todo.start_time)
   const duration  = todo.duration_minutes ?? 60
@@ -41,12 +56,12 @@ export default function DetailPanel({ todoId, currentDate, onClose }: DetailPane
 
   function saveText() {
     const t = localText.trim()
-    if (!t || t === todo!.text) return
+    if (!t || t === todo.text) return
     db.todos.update(todoId, { text: t, updated_at: new Date().toISOString() })
   }
 
   function saveDesc() {
-    if (localDesc === (todo!.description ?? '')) return
+    if (localDesc === todo.description) return
     db.todos.update(todoId, { description: localDesc, updated_at: new Date().toISOString() })
   }
 
@@ -78,7 +93,6 @@ export default function DetailPanel({ todoId, currentDate, onClose }: DetailPane
       >
         {/* todo text */}
         <input
-          ref={textRef}
           autoFocus
           type="text"
           value={localText}

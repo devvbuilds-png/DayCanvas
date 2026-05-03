@@ -8,6 +8,7 @@ interface LaneManagerProps {
 }
 
 const PRESET_COLORS = ['#534AB7', '#0F6E56', '#D85A30', '#BA7517', '#2D7DD2', '#A84484']
+const EMPTY_LANES: Lane[] = []
 
 function applyReorder(lanes: Lane[], dragId: string, insertBefore: number): Lane[] {
   const fromIdx = lanes.findIndex(l => l.id === dragId)
@@ -20,7 +21,7 @@ function applyReorder(lanes: Lane[], dragId: string, insertBefore: number): Lane
 }
 
 export default function LaneManager({ onClose }: LaneManagerProps) {
-  const lanes = useLiveQuery(() => db.lanes.orderBy('order').toArray(), []) ?? []
+  const lanes = useLiveQuery(() => db.lanes.orderBy('order').toArray(), []) ?? EMPTY_LANES
 
   const [newName,  setNewName]  = useState('')
   const [newColor, setNewColor] = useState(PRESET_COLORS[4])
