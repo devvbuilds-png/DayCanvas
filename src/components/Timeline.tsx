@@ -42,6 +42,44 @@ export default function Timeline({ lanes, currentDate, onOpen, stamped, gestureA
     return () => clearInterval(id)
   }, [])
 
+  if (lanes.length === 0) {
+    return (
+      <div className="rounded-md overflow-hidden" style={{ border: '1px solid #1e1e1e', background: '#161616' }}>
+        <div className="relative min-h-[112px] px-5 py-4">
+          <div className="absolute right-24 top-4 text-right">
+            <div className="text-[11px] uppercase tracking-[0.14em]" style={{ color: '#6c665b' }}>
+              Add parallel work tracks
+            </div>
+          </div>
+          <svg
+            className="absolute right-8 top-8 pointer-events-none"
+            width="150"
+            height="72"
+            viewBox="0 0 150 72"
+            fill="none"
+            aria-hidden="true"
+          >
+            <path
+              d="M10 58C42 58 56 36 76 24C95 12 118 16 136 8"
+              stroke="#6c665b"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeDasharray="4 4"
+            />
+            <path
+              d="M128 7L137 8L133 17"
+              stroke="#6c665b"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="rounded-md overflow-hidden" style={{ border: '1px solid #1e1e1e', background: '#161616' }}>
       {/* hour ruler */}
