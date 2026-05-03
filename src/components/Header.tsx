@@ -98,10 +98,10 @@ export default function Header({ currentDate, day, onNavigate, currentTaskText }
           type="button"
           onClick={tapMood}
           title={moodEntry ? moodEntry.label : 'set mood'}
-          className="h-8 rounded-full flex items-center justify-center gap-1.5 px-2.5 text-[16px] transition-colors shrink-0"
+          className="h-8 min-w-[60px] rounded-full flex items-center justify-center gap-1.5 px-2.5 text-[16px] transition-colors shrink-0"
           style={{
-            background: moodEntry ? '#1e1e1e' : '#161616',
-            border: `1px solid ${moodEntry ? '#2e2e2e' : '#1e1e1e'}`,
+            background: moodEntry ? '#1e1e1e' : '#1b1b1b',
+            border: `1px solid ${moodEntry ? '#2e2e2e' : '#2a2a2a'}`,
           }}
         >
           {moodEntry
@@ -113,7 +113,7 @@ export default function Header({ currentDate, day, onNavigate, currentTaskText }
                 </span>
               </>
             )
-            : <span style={{ fontSize: '9px', color: '#3a3a3a', letterSpacing: '0.02em' }}>mood</span>
+            : <span style={{ fontSize: '9px', color: '#787878', letterSpacing: '0.02em' }}>mood</span>
           }
         </button>
       </div>
