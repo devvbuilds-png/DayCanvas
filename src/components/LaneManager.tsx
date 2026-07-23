@@ -2,23 +2,17 @@ import { useState, useRef, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
 import type { Lane } from '../db/schema'
+import { applyReorder } from '../lib/lanes'
 
 interface LaneManagerProps {
   onClose: () => void
 }
 
-const PRESET_COLORS = ['#534AB7', '#0F6E56', '#D85A30', '#BA7517', '#2D7DD2', '#A84484']
+const PRESET_COLORS = [
+  '#534AB7', '#0F6E56', '#D85A30', '#BA7517', '#2D7DD2', '#A84484',
+  '#3F9142', '#1E96A8', '#7C3FB0', '#C23B5A', '#9C8F1F',
+]
 const EMPTY_LANES: Lane[] = []
-
-function applyReorder(lanes: Lane[], dragId: string, insertBefore: number): Lane[] {
-  const fromIdx = lanes.findIndex(l => l.id === dragId)
-  if (fromIdx === -1) return lanes
-  const arr = [...lanes]
-  const [item] = arr.splice(fromIdx, 1)
-  const adjusted = insertBefore > fromIdx ? insertBefore - 1 : insertBefore
-  arr.splice(adjusted, 0, item)
-  return arr
-}
 
 export default function LaneManager({ onClose }: LaneManagerProps) {
   const lanes = useLiveQuery(() => db.lanes.orderBy('order').toArray(), []) ?? EMPTY_LANES

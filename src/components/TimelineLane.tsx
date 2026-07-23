@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useDroppable } from '@dnd-kit/core'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
@@ -10,6 +11,8 @@ interface TimelineLaneProps {
   onOpen: (id: string) => void
   stamped: boolean
   gestureArmed: boolean
+  isDragging?: boolean
+  onLabelPointerDown?: (e: React.PointerEvent) => void
 }
 
 function hexToRgba(hex: string, alpha: number): string {
@@ -25,8 +28,16 @@ const GRID_LINES = Array.from({ length: 35 }, (_, i) => {
   return { pct: (interval / 36) * 100, isHour: interval % 2 === 0 }
 })
 
-export default function TimelineLane({ lane, currentDate, onOpen, stamped, gestureArmed }: TimelineLaneProps) {
+export default function TimelineLane({ lane, currentDate, onOpen, stamped, gestureArmed, isDragging, onLabelPointerDown }: TimelineLaneProps) {
   const { setNodeRef, isOver } = useDroppable({ id: `track-${lane.id}` })
+  const [isEditing, setIsEditing] = useState(false)
+
+  async function commitRename(value: string) {
+    setIsEditing(false)
+    const name = value.trim()
+    if (!name || name === lane.name) return
+    await db.lanes.update(lane.id, { name: name.charAt(0).toUpperCase() + name.slice(1) })
+  }
 
   const scheduledTodos = useLiveQuery(
     () =>
@@ -43,15 +54,38 @@ export default function TimelineLane({ lane, currentDate, onOpen, stamped, gestu
   ) ?? []
 
   return (
-    <div className="flex items-stretch">
+    <div
+      data-lane-row
+      className="flex items-stretch transition-opacity"
+      style={{ opacity: isDragging ? 0.35 : 1 }}
+    >
       {/* label gutter */}
       <div className="w-20 shrink-0 flex items-center pr-3">
-        <span
-          className="text-[11px] font-medium leading-none tracking-wide"
-          style={{ color: hexToRgba(lane.color, 0.75) }}
-        >
-          {lane.name}
-        </span>
+        {isEditing ? (
+          <input
+            type="text"
+            autoFocus
+            defaultValue={lane.name}
+            onFocus={e => e.currentTarget.select()}
+            onBlur={e => commitRename(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') e.currentTarget.blur()
+              if (e.key === 'Escape') { e.currentTarget.value = lane.name; e.currentTarget.blur() }
+            }}
+            className="w-full min-w-0 text-[11px] font-medium leading-none tracking-wide bg-transparent outline-none border-b py-0.5"
+            style={{ color: lane.color, borderColor: hexToRgba(lane.color, 0.4) }}
+          />
+        ) : (
+          <span
+            onPointerDown={onLabelPointerDown}
+            onDoubleClick={() => setIsEditing(true)}
+            title={lane.name}
+            className="text-[11px] font-medium leading-none tracking-wide cursor-grab active:cursor-grabbing select-none truncate"
+            style={{ color: hexToRgba(lane.color, 0.75) }}
+          >
+            {lane.name}
+          </span>
+        )}
       </div>
 
       {/* track */}
