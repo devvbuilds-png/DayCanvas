@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
+import { db } from '../db/db'
 import type { Lane } from '../db/schema'
+import { applyReorder } from '../lib/lanes'
 import TimelineLane from './TimelineLane'
 
 interface TimelineProps {
@@ -41,6 +43,63 @@ export default function Timeline({ lanes, currentDate, onOpen, stamped, gestureA
     const id = setInterval(() => setNow(getNowState()), 60_000)
     return () => clearInterval(id)
   }, [])
+
+  const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [overIdx,    setOverIdx]    = useState<number | null>(null)
+  const listRef  = useRef<HTMLDivElement>(null)
+  const lanesRef = useRef<Lane[]>(lanes)
+  const dragState = useRef<{ id: string | null; over: number | null }>({ id: null, over: null })
+
+  useEffect(() => { lanesRef.current = lanes }, [lanes])
+
+  function startLaneDrag(e: React.PointerEvent, laneId: string) {
+    e.preventDefault()
+    const startX = e.clientX
+    const startY = e.clientY
+    let dragging = false
+
+    function onMove(ev: PointerEvent) {
+      if (!dragging) {
+        const dx = ev.clientX - startX
+        const dy = ev.clientY - startY
+        if (dx * dx + dy * dy < 16) return
+        dragging = true
+        const fromIdx = lanesRef.current.findIndex(l => l.id === laneId)
+        dragState.current = { id: laneId, over: fromIdx }
+        setDraggingId(laneId)
+        setOverIdx(fromIdx)
+      }
+      if (!listRef.current) return
+      const rows = listRef.current.querySelectorAll('[data-lane-row]')
+      let insertBefore = 0
+      rows.forEach((row, i) => {
+        const rect = row.getBoundingClientRect()
+        if (ev.clientY > rect.top + rect.height / 2) insertBefore = i + 1
+      })
+      dragState.current.over = insertBefore
+      setOverIdx(insertBefore)
+    }
+
+    async function onUp() {
+      document.removeEventListener('pointermove', onMove)
+      document.removeEventListener('pointerup',   onUp)
+
+      const { id: dId, over: finalOver } = dragState.current
+      setDraggingId(null)
+      setOverIdx(null)
+      dragState.current = { id: null, over: null }
+
+      if (!dragging || !dId || finalOver === null) return
+      const currentFromIdx = lanesRef.current.findIndex(l => l.id === dId)
+      if (currentFromIdx === finalOver || currentFromIdx + 1 === finalOver) return
+
+      const reordered = applyReorder(lanesRef.current, dId, finalOver)
+      await Promise.all(reordered.map((lane, i) => db.lanes.update(lane.id, { order: i })))
+    }
+
+    document.addEventListener('pointermove', onMove)
+    document.addEventListener('pointerup',   onUp)
+  }
 
   if (lanes.length === 0) {
     return (
@@ -99,7 +158,7 @@ export default function Timeline({ lanes, currentDate, onOpen, stamped, gestureA
       </div>
 
       {/* lane rows */}
-      <div className="flex flex-col gap-1.5 px-3 py-2.5 relative">
+      <div ref={listRef} className="flex flex-col gap-1.5 px-3 py-2.5 relative">
 
         {/* now-line */}
         {now && (
@@ -126,16 +185,27 @@ export default function Timeline({ lanes, currentDate, onOpen, stamped, gestureA
           </div>
         )}
 
-        {lanes.map(lane => (
-          <TimelineLane
-            key={lane.id}
-            lane={lane}
-            currentDate={currentDate}
-            onOpen={onOpen}
-            stamped={stamped}
-            gestureArmed={gestureArmed}
-          />
+        {lanes.map((lane, idx) => (
+          <Fragment key={lane.id}>
+            {draggingId !== null && overIdx === idx && (
+              <div className="h-0.5 rounded bg-[#534AB7]" />
+            )}
+            <TimelineLane
+              lane={lane}
+              currentDate={currentDate}
+              onOpen={onOpen}
+              stamped={stamped}
+              gestureArmed={gestureArmed}
+              isDragging={draggingId === lane.id}
+              onLabelPointerDown={e => startLaneDrag(e, lane.id)}
+            />
+          </Fragment>
         ))}
+
+        {/* drop line at bottom of list */}
+        {draggingId !== null && overIdx === lanes.length && (
+          <div className="h-0.5 rounded bg-[#534AB7]" />
+        )}
       </div>
     </div>
   )
