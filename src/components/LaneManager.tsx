@@ -20,6 +20,8 @@ export default function LaneManager({ onClose }: LaneManagerProps) {
   const [newName,  setNewName]  = useState('')
   const [newColor, setNewColor] = useState(PRESET_COLORS[4])
 
+  const [colorPickerId, setColorPickerId] = useState<string | null>(null)
+
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const confirmTodoCount = useLiveQuery(
     async () => confirmDeleteId
@@ -94,6 +96,11 @@ export default function LaneManager({ onClose }: LaneManagerProps) {
     setNewColor(PRESET_COLORS[4])
   }
 
+  async function changeLaneColor(id: string, color: string) {
+    await db.lanes.update(id, { color })
+    setColorPickerId(null)
+  }
+
   async function renameLane(id: string, value: string) {
     const name = value.trim()
     if (!name) return
@@ -130,7 +137,7 @@ export default function LaneManager({ onClose }: LaneManagerProps) {
       <div
         className="fixed z-50 top-24 right-6 w-[300px] border rounded-lg flex flex-col"
         style={{ background: '#1e1e1e', borderColor: '#2a2a2a' }}
-        onClick={e => e.stopPropagation()}
+        onClick={e => { e.stopPropagation(); setColorPickerId(null) }}
       >
         {/* header */}
         <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: '#2a2a2a' }}>
@@ -169,10 +176,40 @@ export default function LaneManager({ onClose }: LaneManagerProps) {
                   </div>
 
                   {/* color dot */}
-                  <span
-                    className="w-2.5 h-2.5 rounded-full shrink-0"
-                    style={{ backgroundColor: lane.color }}
-                  />
+                  <div className="relative shrink-0">
+                    <button
+                      type="button"
+                      onClick={e => { e.stopPropagation(); setColorPickerId(colorPickerId === lane.id ? null : lane.id) }}
+                      title="change color"
+                      className="w-2.5 h-2.5 rounded-full block transition-transform hover:scale-125"
+                      style={{ backgroundColor: lane.color }}
+                    />
+
+                    {colorPickerId === lane.id && (
+                      <div
+                        onClick={e => e.stopPropagation()}
+                        className="absolute z-10 top-5 left-0 flex flex-wrap gap-1.5 p-2 rounded-lg border w-[132px]"
+                        style={{ background: '#252525', borderColor: '#2a2a2a' }}
+                      >
+                        {PRESET_COLORS.map(color => (
+                          <button
+                            key={color}
+                            type="button"
+                            onClick={() => changeLaneColor(lane.id, color)}
+                            title={color}
+                            className={`w-5 h-5 rounded-full transition-transform ${
+                              lane.color === color ? 'scale-110' : 'hover:scale-110'
+                            }`}
+                            style={{
+                              backgroundColor: color,
+                              outline: lane.color === color ? '2px solid #6965db' : undefined,
+                              outlineOffset: lane.color === color ? '2px' : undefined,
+                            }}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
 
                   {/* confirm delete row */}
                   {confirmDeleteId === lane.id ? (
